@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seat Checker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            display: none;
+        }
+        .result.safe {
+            background-color: #d4edda;
+            border: 2px solid #28a745;
+            color: #155724;
+        }
+        .result.unsafe {
+            background-color: #f8d7da;
+            border: 2px solid #dc3545;
+            color: #721c24;
+        }
+        .result-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .details {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        .detail-item {
+            margin: 5px 0;
+            padding-left: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Seat Checker</h1>
+        <div id="mostSafeSeats" style="background-color: #e7f3ff; padding: 15px; border-radius: 4px; margin-bottom: 20px; border-left: 4px solid #2196F3;">
+            <strong>Best Seats:</strong>
+            <p id="safeSeatsList" style="margin: 10px 0 0 0; font-size: 16px; font-weight: bold; color: #1976D2;"></p>
+        </div>
+
+        <div class="input-group">
+            <label for="seatNumber">Seat Number:</label>
+            <input type="number" id="seatNumber" placeholder="Enter seat number" min="1">
+        </div>
+
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        const A11 = {
+            hasTable: [3, 6, 9, 12, 15, 16, 33, 36, 45, 48],
+            noTable: [18, 21, 24, 27, 30, 42, 51, 54],
+        };
+
+        const AB7 = {
+            hasTable: [5, 8, 22, 25],
+            noTable: [1, 2, 11, 16, 19],
+        };
+
+        const A7 = {
+            hasTable: [12, 15, 27, 30, 51, 54],
+            noTable: [3, 6, 9, 16, 18, 21, 24, 33, 36, 37, 39, 42, 45, 48],
+        };
+
+        const getSeatStatus = (carriage, seatNumber) => {
+            if (carriage.hasTable.includes(seatNumber)) {
+                return 'has table, exists';
+            } else if (carriage.noTable.includes(seatNumber)) {
+                return 'no table, exists';
+            } else {
+                return 'does not exist';
+            }
+        };
+
+        const isSafeSeat = (seatNumber) => {
+            const hasTableInA11 = A11.hasTable.includes(seatNumber);
+            const hasTableInAB7 = AB7.hasTable.includes(seatNumber);
+            const hasTableInA7 = A7.hasTable.includes(seatNumber);
+
+            const isSafe = !hasTableInA11 && !hasTableInAB7 && !hasTableInA7;
+
+            return {
+                isSafe,
+                details: {
+                    A11: getSeatStatus(A11, seatNumber),
+                    AB7: getSeatStatus(AB7, seatNumber),
+                    A7: getSeatStatus(A7, seatNumber),
+                }
+            };
+        };
+
+        const displayResult = (seatNumber, result) => {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = 'result ' + (result.isSafe ? 'safe' : 'unsafe');
+
+            const statusText = result.isSafe ? '✓ SAFE' : '✗ NOT SAFE';
+            const message = result.isSafe
+                ? 'This seat does not have a table in any carriage type.'
+                : 'This seat has a table in at least one carriage type.';
+
+            resultDiv.innerHTML = `
+                <div class="result-title">Seat ${seatNumber}: ${statusText}</div>
+                <div class="details">
+                    <div class="detail-item">A11: ${result.details.A11}</div>
+                    <div class="detail-item">AB7: ${result.details.AB7}</div>
+                    <div class="detail-item">A7: ${result.details.A7}</div>
+                </div>
+                <p style="margin-top: 15px;">${message}</p>
+            `;
+
+            resultDiv.style.display = 'block';
+        };
+
+        const findMostSafeSeats = () => {
+            const allSeatNumbers = new Set([
+                ...A11.hasTable, ...A11.noTable,
+                ...AB7.hasTable, ...AB7.noTable,
+                ...A7.hasTable, ...A7.noTable
+            ]);
+
+            const mostSafeSeats = [];
+
+            allSeatNumbers.forEach(seatNumber => {
+                const hasTableInA11 = A11.hasTable.includes(seatNumber);
+                const hasTableInAB7 = AB7.hasTable.includes(seatNumber);
+                const hasTableInA7 = A7.hasTable.includes(seatNumber);
+
+                const hasTable = hasTableInA11 || hasTableInAB7 || hasTableInA7;
+
+                const existsInA11 = A11.hasTable.includes(seatNumber) || A11.noTable.includes(seatNumber);
+                const existsInAB7 = AB7.hasTable.includes(seatNumber) || AB7.noTable.includes(seatNumber);
+                const existsInA7 = A7.hasTable.includes(seatNumber) || A7.noTable.includes(seatNumber);
+
+                const existsCount = (existsInA11 ? 1 : 0) + (existsInAB7 ? 1 : 0) + (existsInA7 ? 1 : 0);
+
+                if (!hasTable && existsCount >= 2) {
+                    mostSafeSeats.push(seatNumber);
+                }
+            });
+
+            return mostSafeSeats.sort((a, b) => a - b);
+        };
+
+        const mostSafeSeats = findMostSafeSeats();
+        document.getElementById('safeSeatsList').textContent = mostSafeSeats.join(', ');
+
+        const input = document.getElementById('seatNumber');
+        input.addEventListener('input', (e) => {
+            const seatNumber = parseInt(e.target.value);
+            if (!isNaN(seatNumber) && seatNumber > 0) {
+                const result = isSafeSeat(seatNumber);
+                displayResult(seatNumber, result);
+            } else {
+                document.getElementById('result').style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
